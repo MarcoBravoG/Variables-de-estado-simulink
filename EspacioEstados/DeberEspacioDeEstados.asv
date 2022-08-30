@@ -1,0 +1,176 @@
+% Script para determinar la Ley de Control Para un Sistema Dado
+clear all
+close all
+clc
+
+%Membrete
+disp('      Deber de Espacio de Estados ')
+disp('Jonnathan Berrezueta        Teoria de Control 2 ')
+
+%Establesco mi sistema con las siguientes matrices
+% A=[0 1 0;0 0 1;-1 -5 -6]
+% B=[0;0;1]
+% C=[0 0 1]
+% D=0
+
+% [b, a]= ss2tf(A,B,C,D);
+% H=tf([b],[a]);
+% step(H);
+% sisotool(H)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+b = [0.02792 0.000437];
+a = [1 0.2017 0.0049 2.384e-05];
+H=tf([b],[a])
+ 
+[A,B,C,D] = tf2ss(b,a)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Determino la Matriz de Controlabilidad
+disp('Matriz de Controlabilidad')
+M=[B A*B (A^2)*B]
+
+%Encuentro el determinante 
+detM=det(M);
+
+%Verifico si el sistema es controlable o no segun el determinante
+if detM~=0
+    disp('El determinante es distinto de cero')
+    disp('El Sistema Es Controlable')
+else
+    disp('El Sistema No Es Controlable')
+end
+
+% Establesco los Polos Deseados
+
+% ad1=14;
+% ad2=60;
+% ad3=200;
+
+ad1=14;
+ad2=60;
+ad3=200;
+
+%Determino mediante los siguientes metodos
+
+%//////////////////////////////////////////////////////////////////////
+%////           Matriz de Transformacion
+%/////////////////////////////////////////////////////////////////////
+
+
+disp('METODO 1: Matriz de Transformacion')
+
+%Raices del Sistema
+syms s;
+disp('Polos del sistema')
+h=det(s*eye(3)-A)
+
+%Determino los valores de los terminos
+R=sym2poly(h)
+
+%Polos Obtenidos
+a1=R(1,2)
+a2=R(1,3)
+a3=R(1,4)
+
+%Determino la matri W T y K
+
+W=[a2 a1 1;a1 1 0;1 0 0];
+T=M*W;
+K=[ad3-a3 ad2-a2 ad1-a1]*inv(T)
+
+%Respuesta del sistema
+
+%Funcion Original
+[num1,den1]=ss2tf(A,B,C,D);
+G1=tf(num1,den1)
+
+%Grafico la funcion original
+figure(1);
+step(G1);
+legend('Funcion Original')
+grid on;
+hold on;
+title('\bfMétodo 1: Matriz de Transformación');
+
+%Para graficar la funcion controlada
+[num2,den2]=ss2tf(A-B*K,[0;0;1],C,D);
+Controlada=tf(num2,den2);
+step(Controlada);
+
+%//////////////////////////////////////////////////////////////////////
+%////           Sustitucion Directa
+%/////////////////////////////////////////////////////////////////////
+disp('METODO 2: Sustitucion Directa')
+syms k1 k2 k3
+K1=[k1 k2 k3]
+
+%Raices del Sistema
+syms s;
+
+R=(s*eye(3)-A+B*K1)
+    
+%Polos Obtenidos
+a1=R(3,3)
+a2=R(3,2)
+a3=R(3,1)
+
+b1=solve(a1-s==ad1,k3)
+b2=solve(a2==ad2,k2)
+b3=solve(a3==ad3,k1)
+
+%hallo los valos de los K
+K=[sym2poly(b3) sym2poly(b2) sym2poly(b1)]
+
+%Respuesta del sistema
+
+%Funcion Original
+[num1,den1]=ss2tf(A,B,C,D);
+G1=tf(num1,den1)    ;
+
+    
+figure(2);
+step(G1);
+legend('Funcion Original')
+grid on;
+hold on;
+title('\bfMétodo 2: Sustitución Directa');
+%Funcion Controlada
+[num2,den2]=ss2tf(A-B*K,[0;0;1],C,D);
+Controlada=tf(num2,den2);
+
+step(Controlada);
+
+%//////////////////////////////////////////////////////////////////////
+%////           Formula de Ackerman 
+%/////////////////////////////////////////////////////////////////////
+
+ disp('METODO 3: Formula de Ackerman')
+
+ At=(A^3)+(ad1*(A^2))+(ad2*A)+(ad3*eye(3))
+                
+ K=[0 0 1]*inv(M)*At
+                       
+
+ %Respuesta del sistema
+
+ %Funcion Original
+ [num1,den1]=ss2tf(A,B,C,D);
+ G1=tf(num1,den1);
+ 
+ figure(3);
+ step(G1);
+ grid on;
+ hold on;
+title('\bfMétodo 3: Formula de Ackerman');
+legend('Funcion Original')
+
+%Funcion Controlada
+ [num2,den2]=ss2tf(A-B*K,[0;0;1],C,D);
+ Controlada=tf(num2,den2);
+  
+ step(Controlada);
+           
+                           
+       
